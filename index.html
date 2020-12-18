@@ -1,0 +1,97 @@
+<html>
+
+<head>
+  <title>Temperature Logger</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script>
+    google.charts.load('current', {packages: ['corechart', 'line']});
+  </script>
+</head>
+
+<body>
+  <script src="./puck.js"></script>
+  <script>
+    let connection;
+
+    const setRawData = (text) => {
+      const outputElem = document.getElementById('rawData');
+      outputElem.innerHTML = text;
+    }
+
+    const drawChart = (rawData) => {
+      console.log(rawData);
+      const INTERVAL = 2 * 60 * 1000; // 2 mins
+      const tableData = rawData.data.map((entry, index) => [new Date(rawData.first + index * INTERVAL), entry]);
+
+      var data = new google.visualization.DataTable();
+      data.addColumn('datetime', 'Timestamp');
+      data.addColumn('number', 'Temperature');
+      data.addRows(tableData);
+
+      var options = {
+        explorer: {
+          axis: 'horizontal',
+          keepInBounds: true
+        },
+        hAxis: {
+          title: 'Time'
+        },
+        vAxis: {
+          title: 'Temperature'
+        }
+      };
+
+      var chart = new google.visualization.LineChart(document.getElementById('chart'));
+
+      chart.draw(data, options);
+    }
+
+    const processData = (buf) => {
+      const start = buf.indexOf('{');
+      const end = buf.lastIndexOf('}') + 1;
+      const data = JSON.parse(buf.slice(start, end).trim());
+      setRawData(JSON.stringify(data));
+      drawChart(data);
+    }
+
+    const getData = () => {
+      setRawData('Loading...');
+
+      if (connection) {
+        connection.close();
+        connection = undefined;
+      }
+
+      Puck.connect(c => {        
+        if (!c) {
+          return;
+        }
+        connection = c;
+
+        let buf = '';
+        connection.on("data", (d) => {
+          buf += d;
+          if (d.includes('}')) {
+            processData(buf);
+            connection.close();
+            connection = undefined;
+          }
+        });
+
+        // Request data from Puck.js
+        connection.write("\x10getData()\n");
+      });
+    }
+  </script>
+  <button onclick="getData()">Get Data</button>
+  <br />
+  <br />
+  <div id="chart">
+
+  </div>
+  <div id="rawData" style="overflow: hidden; word-break: break-all; color: grey;">
+    
+  </div>
+</body>
+
+</html>
