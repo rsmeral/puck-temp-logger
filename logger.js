@@ -1,15 +1,17 @@
 MAX_COUNT = 15120;
-data = new Int8Array(MAX_COUNT);
-period = 2 * 60 * 1000;
-first = Math.round(Date.now());
-idx = 0;
-last = 0;
+PERIOD = 2 * 60 * 1000;
+let data;
+let idx;
+let first;
+let last; 
 
 const onInit = () => {
   data = new Int8Array(MAX_COUNT);
-  first = Math.round(Date.now());
   idx = 0;
+  first = Math.round(Date.now());
   last = 0;
+
+  NRF.nfcURL('https://rsmeral.github.io/puck-temp-logger');
 };
 
 const getData = () => {
@@ -30,4 +32,4 @@ setInterval(() => {
     data[idx++] = Math.round(E.getTemperature());
     last = Math.round(Date.now());
   }
-}, period);
+}, PERIOD);
